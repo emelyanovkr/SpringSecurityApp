@@ -27,7 +27,7 @@ public class SecurityConfig {
 
   @Bean
   public PasswordEncoder passwordEncoder() {
-    return NoOpPasswordEncoder.getInstance();
+    return new BCryptPasswordEncoder();
   }
 
   @Bean
@@ -44,6 +44,7 @@ public class SecurityConfig {
                     .loginProcessingUrl("/process_login")
                     .defaultSuccessUrl("/hello", true)
                     .failureUrl("/auth/login?error"))
+        .logout(logout -> logout.logoutUrl("/auth/logout").logoutSuccessUrl("/auth/login"))
         .rememberMe(Customizer.withDefaults());
 
     return http.build();
@@ -58,7 +59,9 @@ public class SecurityConfig {
   public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
     AuthenticationManagerBuilder authenticationManagerBuilder =
         http.getSharedObject(AuthenticationManagerBuilder.class);
-    authenticationManagerBuilder.userDetailsService(personDetailsService);
+    authenticationManagerBuilder
+        .userDetailsService(personDetailsService)
+        .passwordEncoder(passwordEncoder());
     return authenticationManagerBuilder.build();
   }
 }
