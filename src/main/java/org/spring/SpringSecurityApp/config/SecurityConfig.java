@@ -1,6 +1,5 @@
 package org.spring.SpringSecurityApp.config;
 
-import org.spring.SpringSecurityApp.security.AuthProviderImpl;
 import org.spring.SpringSecurityApp.services.PersonDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,7 +9,9 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -19,25 +20,30 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   private final PersonDetailsService personDetailsService;
-  private final AuthProviderImpl authProvider;
 
-  public SecurityConfig(PersonDetailsService personDetailsService, AuthProviderImpl authProvider) {
+  public SecurityConfig(PersonDetailsService personDetailsService) {
     this.personDetailsService = personDetailsService;
-    this.authProvider = authProvider;
   }
 
-  /*  @Bean
+  @Bean
   public PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
-  }*/
+    return NoOpPasswordEncoder.getInstance();
+  }
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
-    http.authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+    http.csrf(AbstractHttpConfigurer::disable)
+        .authorizeHttpRequests(
+            auth ->
+                auth.requestMatchers("/auth/*", "/error").permitAll().anyRequest().authenticated())
         .formLogin(
             formLogin ->
-                formLogin.permitAll().defaultSuccessUrl("/hello", true).failureUrl("/login?error"))
+                formLogin
+                    .loginPage("/auth/login")
+                    .permitAll()
+                    .loginProcessingUrl("/process_login")
+                    .defaultSuccessUrl("/hello", true)
+                    .failureUrl("/auth/login?error"))
         .rememberMe(Customizer.withDefaults());
 
     return http.build();
@@ -53,7 +59,6 @@ public class SecurityConfig {
     AuthenticationManagerBuilder authenticationManagerBuilder =
         http.getSharedObject(AuthenticationManagerBuilder.class);
     authenticationManagerBuilder.userDetailsService(personDetailsService);
-    authenticationManagerBuilder.authenticationProvider(authProvider);
     return authenticationManagerBuilder.build();
   }
 }
