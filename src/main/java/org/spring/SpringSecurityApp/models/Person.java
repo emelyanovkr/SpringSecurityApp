@@ -26,6 +26,9 @@ public class Person {
   @NotEmpty(message = "Password must be set for an user")
   private String password;
 
+  @Column(name = "role")
+  private String role;
+
   public Person() {}
 
   public Person(String userName, int yearOfBirth) {
@@ -63,6 +66,14 @@ public class Person {
 
   public void setPassword(String password) {
     this.password = password;
+  }
+
+  public String getRole() {
+    return role;
+  }
+
+  public void setRole(String role) {
+    this.role = role;
   }
 
   @Override
