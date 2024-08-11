@@ -10,9 +10,12 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -20,9 +23,11 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   private final PersonDetailsService personDetailsService;
+  private final JWTFilter jwtFilter;
 
-  public SecurityConfig(PersonDetailsService personDetailsService) {
+  public SecurityConfig(PersonDetailsService personDetailsService, JWTFilter jwtFilter) {
     this.personDetailsService = personDetailsService;
+    this.jwtFilter = jwtFilter;
   }
 
   @Bean
@@ -32,7 +37,8 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    http.authorizeHttpRequests(
+    http.csrf(AbstractHttpConfigurer::disable)
+        .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/auth/*", "/error")
                     .permitAll()
@@ -47,7 +53,11 @@ public class SecurityConfig {
                     .defaultSuccessUrl("/hello", true)
                     .failureUrl("/auth/login?error"))
         .logout(logout -> logout.logoutUrl("/auth/logout").logoutSuccessUrl("/auth/login"))
-        .rememberMe(Customizer.withDefaults());
+        .sessionManagement(
+            sessionManagement ->
+                sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .rememberMe(Customizer.withDefaults())
+        .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
